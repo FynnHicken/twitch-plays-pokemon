@@ -1,0 +1,18 @@
+{
+    admin off
+}
+
+# Öffentliche DynDNS-Domain mit automatischem Let's Encrypt HTTPS
+fynntest.ddns.net {
+    reverse_proxy twitch-plays-pokemon:8080 {
+        flush_interval -1
+    }
+}
+
+# Lokaler HTTPS-Zugriff für das Heimnetzwerk (internes Zertifikat)
+:8443 {
+    tls internal
+    reverse_proxy twitch-plays-pokemon:8080 {
+        flush_interval -1
+    }
+}

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Environment and secrets
+.env
+*.env
+*.key
+truenas_key*
+id_rsa*
+id_ed25519*
+
+# Copyrighted ROMs (Game Boy ROM binaries)
+roms/*
+!roms/README.md
+!roms/.gitkeep
+
+# Save states and battery saves
+saves/*
+!saves/.gitkeep
+
+# Caddy TLS data & certificates
+caddy_data/
+caddy_config/
+
+# OS and IDE files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

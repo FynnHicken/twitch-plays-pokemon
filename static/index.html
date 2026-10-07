@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Twitch Plays Pokémon - Docker Edition</title>
+    <link rel="stylesheet" href="/static/style.css?v=dragdrop">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-branding">
+                <span class="pokeball-icon"></span>
+                <h1 id="app-title">TWITCH PLAYS POKÉMON</h1>
+                <span class="badge docker-badge">DOCKER CONTAINER</span>
+            </div>
+            <div class="header-stats">
+                <div class="stat-pill"><span class="label">FPS:</span> <span id="stat-fps" class="val">0.0</span></div>
+                <div class="stat-pill"><span class="label">ZUSCHAUER:</span> <span id="stat-viewers" class="val">0</span></div>
+                <div class="stat-pill"><span class="label">TOTAL INPUTS:</span> <span id="stat-total-inputs" class="val">0</span></div>
+                <button id="admin-open-btn" class="admin-gear-btn" title="Admin-Konsole öffnen">⚙️ Admin</button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT GRID -->
+        <div class="main-grid">
+            <!-- LEFT COLUMN: GAMEBOY & CONTROLS -->
+            <div class="game-column">
+                <div class="gameboy-chassis">
+                    <!-- Screen Bezel -->
+                    <div class="screen-bezel">
+                        <div class="bezel-header">
+                            <div class="stripe-line blue"></div>
+                            <div class="stripe-line red"></div>
+                            <span class="bezel-title">DOT MATRIX WITH STEREO SOUND</span>
+                        </div>
+                        
+                        <div class="screen-viewport" id="screen-container">
+                            <img id="game-stream" src="/stream" width="320" height="288" alt="Game Boy Live Stream" />
+                        </div>
+
+                        <div class="bezel-footer">
+                            <button id="manual-save-btn" class="subtle-btn save-btn">💾 Save State</button>
+                        </div>
+                    </div>
+
+                    <!-- Nintendo / Branding -->
+                    <div class="brand-strip">
+                        <span class="gameboy-logo"><em>GAME BOY</em></span>
+                        <span class="color-text">COLOR</span>
+                    </div>
+
+                    <!-- Physical Controls Section -->
+                    <div class="controller-pad">
+                        <!-- D-PAD -->
+                        <div class="dpad-container">
+                            <button class="dpad-btn dpad-up" data-cmd="up" title="Oben (Pfeil Oben)">▲</button>
+                            <button class="dpad-btn dpad-left" data-cmd="left" title="Links (Pfeil Links)">◀</button>
+                            <div class="dpad-center"></div>
+                            <button class="dpad-btn dpad-right" data-cmd="right" title="Rechts (Pfeil Rechts)">▶</button>
+                            <button class="dpad-btn dpad-down" data-cmd="down" title="Unten (Pfeil Unten)">▼</button>
+                        </div>
+
+                        <!-- A / B Buttons -->
+                        <div class="action-buttons">
+                            <div class="btn-cluster">
+                                <button class="action-btn btn-b" data-cmd="b" title="B (Taste X)">B</button>
+                                <label>B</label>
+                            </div>
+                            <div class="btn-cluster">
+                                <button class="action-btn btn-a" data-cmd="a" title="A (Taste Z)">A</button>
+                                <label>A</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Select & Start Buttons -->
+                    <div class="system-buttons">
+                        <div class="sys-btn-wrap">
+                            <button class="sys-btn" data-cmd="select" title="Select (Shift)">SELECT</button>
+                            <label>SELECT</label>
+                        </div>
+                        <div class="sys-btn-wrap">
+                            <button class="sys-btn" data-cmd="start" title="Start (Enter)">START</button>
+                            <label>START</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keyboard shortcuts guide -->
+                <div class="keyboard-guide">
+                    <h3>⌨️ Tastatur-Steuerung:</h3>
+                    <p><span>Pfeiltasten</span>: Steuerkreuz | <span>Z</span>: A | <span>X</span>: B | <span>Enter</span>: Start | <span>Shift</span>: Select</p>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: CHAT, VOTING & FEED -->
+            <div class="sidebar-column">
+                <!-- ANARCHY / DEMOCRACY METER -->
+                <div class="panel mode-panel">
+                    <div class="mode-header">
+                        <span id="current-mode-tag" class="mode-badge anarchy">ANARCHIE</span>
+                        <div class="mode-vote-actions">
+                            <button class="vote-mode-btn anarchy-btn" data-mode="anarchy">VOTE ANARCHY</button>
+                            <button class="vote-mode-btn democracy-btn" data-mode="democracy">VOTE DEMOCRACY</button>
+                        </div>
+                    </div>
+
+                    <!-- Tug of War Bar -->
+                    <div class="meter-wrapper">
+                        <div class="meter-labels">
+                            <span>Anarchie (<span id="anarchy-pct">100</span>%)</span>
+                            <span>Demokratie (<span id="democracy-pct">0</span>%)</span>
+                        </div>
+                        <div class="meter-track">
+                            <div class="meter-fill-anarchy" id="anarchy-bar" style="width: 100%;"></div>
+                            <div class="meter-fill-democracy" id="democracy-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Democracy Round Timer & Tally (Visible when in Democracy) -->
+                    <div class="democracy-round-box" id="democracy-round-box" style="display: none;">
+                        <div class="dem-timer-line">
+                            <span>NÄCHSTE ENTSCHEIDUNG IN:</span>
+                            <span class="countdown-clock" id="dem-countdown">10.0s</span>
+                        </div>
+                        <div class="dem-votes-list" id="dem-votes-list">
+                            <!-- Populated dynamically -->
+                            <div class="empty-hint">Noch keine Stimmen in dieser Runde...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LIVE EXECUTED INPUTS -->
+                <div class="panel inputs-panel">
+                    <div class="panel-title">
+                        <span>⚡ LIVE INPUT-FEED</span>
+                        <span class="badge-mini" id="queue-size-badge">Warteschlange: 0</span>
+                    </div>
+                    <div class="input-history-ticker" id="input-history-ticker">
+                        <!-- Items populated dynamically -->
+                        <div class="history-item placeholder">Warte auf erste Befehle...</div>
+                    </div>
+                </div>
+
+                <!-- CHAT & COMMANDS -->
+                <div class="panel chat-panel">
+                    <div class="panel-title">
+                        <span>💬 STREAM-CHAT & BEFEHLE</span>
+                    </div>
+
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-msg system">
+                            <span class="time">[System]</span>
+                            <span class="body">Willkommen bei Twitch Plays Pokémon! Gib Befehle wie <b>a, b, up, down, left, right, start, select</b> oder <b>a3, up2</b> ein.</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Command Bar -->
+                    <div class="quick-commands">
+                        <button class="quick-chip" data-cmd="a">A</button>
+                        <button class="quick-chip" data-cmd="b">B</button>
+                        <button class="quick-chip" data-cmd="up">UP</button>
+                        <button class="quick-chip" data-cmd="down">DOWN</button>
+                        <button class="quick-chip" data-cmd="left">LEFT</button>
+                        <button class="quick-chip" data-cmd="right">RIGHT</button>
+                        <button class="quick-chip" data-cmd="start">START</button>
+                        <button class="quick-chip" data-cmd="wait">WAIT</button>
+                    </div>
+
+                    <!-- Chat Input Box -->
+                    <form id="chat-form" class="chat-input-form">
+                        <input type="text" id="username-input" class="user-field" placeholder="Name" maxlength="16" value="Trainer">
+                        <input type="text" id="message-input" class="msg-field" placeholder="Befehl oder Chat eingeben..." autocomplete="off">
+                        <button type="submit" class="send-btn">SENDEN</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN CONSOLE MODAL -->
+    <div id="admin-modal" class="admin-modal-overlay" style="display: none;">
+        <div class="admin-modal-container">
+            <div class="admin-modal-header">
+                <div class="admin-modal-title">
+                    <span class="admin-icon">⚙️</span>
+                    <span>ADMIN-KONSOLE</span>
+                </div>
+                <button id="admin-close-btn" class="admin-close-btn" title="Schließen (ESC)">✕</button>
+            </div>
+
+            <!-- LOGIN VIEW -->
+            <div id="admin-login-view" class="admin-modal-body">
+                <div class="admin-login-box">
+                    <div class="admin-login-badge">🔒 Geschützter Bereich</div>
+                    <p class="admin-login-desc">Bitte gib das Admin-Passwort ein, um Spielregeln, Warteschlange und Systemoptionen zu verwalten.</p>
+                    <form id="admin-login-form">
+                        <div class="admin-field-group">
+                            <input type="password" id="admin-pass-input" class="admin-input" placeholder="Admin-Passwort..." autocomplete="current-password" required />
+                            <button type="submit" class="admin-btn admin-btn-primary">Anmelden</button>
+                        </div>
+                        <div id="admin-login-msg" class="admin-status-msg"></div>
+                    </form>
+                    <div class="admin-hint">Standard-Passwort: <code>admin</code></div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD VIEW -->
+            <div id="admin-dashboard-view" class="admin-modal-body" style="display: none;">
+                <!-- TABS NAVIGATION -->
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" data-tab="tab-voting">⚖️ Abstimmung & Modus</button>
+                    <button class="admin-tab-btn" data-tab="tab-queue">📥 Warteschlange</button>
+                    <button class="admin-tab-btn" data-tab="tab-display">👁️ Anzeige & ROM</button>
+                    <button class="admin-tab-btn" data-tab="tab-system">💾 Emulator & System</button>
+                </div>
+
+                <!-- TAB 1: VOTING & MODUS -->
+                <div id="tab-voting" class="admin-tab-content active">
+                    <div class="admin-card">
+                        <h4>Modus-Steuerung</h4>
+                        <div class="admin-radio-group">
+                            <label class="admin-radio-label">
+                                <input type="radio" name="admin_forced_mode" value="auto" checked />
+                                <span>Automatisch (Voting Tug-of-War)</span>
+                            </label>
+                            <label class="admin-radio-label">
+                                <input type="radio" name="admin_forced_mode" value="anarchy" />
+                                <span>Dauerhafte Anarchie erzwingen</span>
+                            </label>
+                            <label class="admin-radio-label">
+                                <input type="radio" name="admin_forced_mode" value="democracy" />
+                                <span>Dauerhafte Demokratie erzwingen</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="admin-range-header">
+                            <label for="admin-dem-seconds">Demokratie Rundenzeit / Vote Cooldown:</label>
+                            <span id="admin-dem-seconds-val" class="admin-val-badge">10s</span>
+                        </div>
+                        <input type="range" id="admin-dem-seconds" min="5" max="60" step="1" value="10" class="admin-range" />
+                        <span class="admin-subtext">Wie viele Sekunden Stimmen für den nächsten Zug im Demokratie-Modus gesammelt werden.</span>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="admin-range-header">
+                            <label for="admin-dem-threshold">Demokratie-Schwelle:</label>
+                            <span id="admin-dem-threshold-val" class="admin-val-badge">60%</span>
+                        </div>
+                        <input type="range" id="admin-dem-threshold" min="50" max="90" step="5" value="60" class="admin-range" />
+                        <span class="admin-subtext">Prozentsatz der Stimmen, ab dem von Anarchie zu Demokratie gewechselt wird.</span>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="admin-range-header">
+                            <label for="admin-user-cooldown">Benutzer-Cooldown / Spam-Schutz:</label>
+                            <span id="admin-user-cooldown-val" class="admin-val-badge">0.0s</span>
+                        </div>
+                        <input type="range" id="admin-user-cooldown" min="0" max="10" step="0.5" value="0" class="admin-range" />
+                        <span class="admin-subtext">Wartezeit pro Nutzer zwischen zwei Eingaben (0.0s = kein Limit).</span>
+                    </div>
+                </div>
+
+                <!-- TAB 2: QUEUE -->
+                <div id="tab-queue" class="admin-tab-content">
+                    <div class="admin-card">
+                        <div class="admin-stat-row">
+                            <span>Aktuelle Warteschlange:</span>
+                            <span id="admin-queue-live-count" class="admin-val-badge">0 Befehle</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-card">
+                        <label class="admin-switch-label">
+                            <input type="checkbox" id="admin-queue-paused" />
+                            <span class="admin-switch-slider"></span>
+                            <span class="admin-switch-text">Warteschlange pausieren (keine neuen Eingaben verarbeiten)</span>
+                        </label>
+                    </div>
+
+                    <div class="admin-card">
+                        <div class="admin-range-header">
+                            <label for="admin-queue-delay">Tastendruck-Dauer (Anarchie-Reaktion):</label>
+                            <span id="admin-queue-delay-val" class="admin-val-badge">150ms</span>
+                        </div>
+                        <input type="range" id="admin-queue-delay" min="50" max="500" step="25" value="150" class="admin-range" />
+                        <span class="admin-subtext">Wie lange ein virtueller Knopf im Anarchie-Modus gedrückt gehalten wird.</span>
+                    </div>
+
+                    <div class="admin-card">
+                        <h4>Warteschlange bereinigen</h4>
+                        <p class="admin-subtext">Verwirft alle aktuell angestauten Tastendrücke in der Warteschlange sofort.</p>
+                        <button id="admin-clear-queue-btn" class="admin-btn admin-btn-danger">🗑️ Warteschlange sofort leeren</button>
+                    </div>
+                </div>
+
+                <!-- TAB 3: DISPLAY & ROM -->
+                <div id="tab-display" class="admin-tab-content">
+                    <div class="admin-card">
+                        <h4>ROM hochladen (Drag & Drop)</h4>
+                        <p class="admin-subtext">Ziehe eine <code>.gb</code> oder <code>.gbc</code> Datei hier hinein, um sie direkt auf den Server zu laden:</p>
+                        
+                        <div id="admin-rom-dropzone" class="rom-dropzone">
+                            <input type="file" id="admin-rom-file-input" accept=".gb,.gbc" style="display: none;" />
+                            <div class="dropzone-content">
+                                <span class="dropzone-icon">📥</span>
+                                <div class="dropzone-title">ROM hier hineinziehen oder <u>klicken</u> zum Auswählen</div>
+                                <div class="dropzone-subtitle">Game Boy (.gb) & Game Boy Color (.gbc) bis 16 MB</div>
+                            </div>
+                        </div>
+
+                        <div id="admin-upload-status-box" class="admin-upload-status-box" style="display: none;">
+                            <div class="upload-progress-track">
+                                <div id="admin-upload-progress-bar" class="upload-progress-fill"></div>
+                            </div>
+                            <div id="admin-upload-msg" class="admin-status-msg"></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-card">
+                        <h4>ROM auswählen / wechseln</h4>
+                        <p class="admin-subtext">Wähle eine der erkannten Game Boy ROMs aus dem Ordner <code>roms/</code> aus:</p>
+                        <div class="admin-rom-selector-row">
+                            <select id="admin-rom-select" class="admin-select">
+                                <option value="">Lade ROMs...</option>
+                            </select>
+                            <button type="button" id="admin-switch-rom-btn" class="admin-btn admin-btn-primary">🎮 ROM wechseln</button>
+                        </div>
+                        <div id="admin-rom-switch-status" class="admin-status-msg"></div>
+                        <p class="admin-subtext" style="margin-top: 10px;">
+                            💡 <b>Alternative über SMB:</b> Neue ROMs können auch direkt in <code>/Volumes/smb_share/Docker/twitch-plays-pokemon/roms/</code> abgelegt werden.
+                        </p>
+                    </div>
+
+                    <div class="admin-card">
+                        <h4>Aktiver Spielstand & Status</h4>
+                        <div class="admin-rom-info">
+                            <span>Aktuell aktive ROM:</span>
+                            <code id="admin-rom-actual-name">-</code>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: SYSTEM & EMULATOR -->
+                <div id="tab-system" class="admin-tab-content">
+                    <div class="admin-card">
+                        <h4>Emulations-Geschwindigkeit</h4>
+                        <div class="admin-btn-group">
+                            <button class="admin-toggle-btn active" data-speed="1">1x (Normal)</button>
+                            <button class="admin-toggle-btn" data-speed="2">2x (Schnell)</button>
+                            <button class="admin-toggle-btn" data-speed="3">3x (Turbo)</button>
+                        </div>
+                    </div>
+
+                    <div class="admin-card">
+                        <h4>Speicherstände</h4>
+                        <div class="admin-btn-row">
+                            <button id="admin-save-state-btn" class="admin-btn admin-btn-primary">💾 Jetzt schnellspeichern</button>
+                            <button id="admin-load-state-btn" class="admin-btn admin-btn-secondary">↩️ Letzten Autosave laden</button>
+                        </div>
+                        <div id="admin-save-feedback" class="admin-status-msg"></div>
+                    </div>
+
+                    <div class="admin-card">
+                        <h4>Admin-Durchsage im Chat</h4>
+                        <form id="admin-announcement-form" class="admin-announcement-form">
+                            <input type="text" id="admin-announcement-input" class="admin-input" placeholder="Nachricht an alle Zuschauer..." />
+                            <button type="submit" class="admin-btn admin-btn-primary">Senden</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- FOOTER ACTIONS -->
+                <div class="admin-modal-footer">
+                    <button id="admin-save-all-btn" class="admin-btn admin-btn-save">💾 Einstellungen anwenden & speichern</button>
+                    <div class="admin-footer-right">
+                        <span id="admin-save-status" class="admin-save-status"></span>
+                        <button id="admin-logout-btn" class="admin-btn admin-btn-logout">Abmelden</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=dragdrop"></script>
+</body>
+</html>

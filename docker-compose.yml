@@ -1,0 +1,45 @@
+services:
+  twitch-plays-pokemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: twitch-plays-pokemon
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8080"
+    volumes:
+      # Mount directory for Game Boy ROMs (.gb / .gbc)
+      - ./roms:/app/roms
+      # Mount directory for battery saves (.sav) and auto-save states
+      - ./saves:/app/saves
+    environment:
+      - PORT=8080
+      - HOST=0.0.0.0
+      - ROM_DIR=/app/roms
+      - SAVES_DIR=/app/saves
+      - ROM_PATH=${ROM_PATH:-}
+      - FPS=${FPS:-30}
+      - DEFAULT_MODE=${DEFAULT_MODE:-anarchy}
+      - DEMOCRACY_INTERVAL=${DEMOCRACY_INTERVAL:-10}
+      - DEMOCRACY_THRESHOLD=${DEMOCRACY_THRESHOLD:-0.6}
+      - AUTO_SAVE_INTERVAL=${AUTO_SAVE_INTERVAL:-60}
+      
+      # Optional: Connect directly to Twitch Chat
+      - TWITCH_CHANNEL=${TWITCH_CHANNEL:-}
+      - TWITCH_TOKEN=${TWITCH_TOKEN:-}
+      - TWITCH_NICK=${TWITCH_NICK:-}
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: tpp-caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "8085:80"
+      - "8443:8443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    depends_on:
+      - twitch-plays-pokemon
